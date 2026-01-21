@@ -8,7 +8,7 @@ const API_KEYS = [
   "AIzaSyD4IYE1g3zEUa3tHQ0yN9JqBqDcu1xpuj0"
 ];
 
-const MODEL = "gemini-2.5-flash";
+const MODEL = "gemini-3-flash";
 const TEMPERATURE = 0.7;
 const MAX_OUTPUT_TOKENS = 15000;
 
