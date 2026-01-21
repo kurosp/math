@@ -262,3 +262,7 @@ code{
   .plot{ height: 360px; }
   .app{ padding: 14px 12px 22px; }
 }
+
+/* clickable app title -> open AI folder */
+.brand-link{ text-decoration:none; color:inherit; cursor:pointer; }
+.brand-link:active{ transform: translateY(1px); }

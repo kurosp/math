@@ -93,6 +93,16 @@ function preprocessSuperscripts(s) {
 
 function preprocessDecimalComma(s) { return s.replace(/(\d),(\d)/g, "$1.$2"); }
 
+function preprocessLogNames(s) {
+  // Normalize common log/ln function names (case-insensitive) so the parser recognizes them.
+  // We intentionally keep "log2(...)" etc here; base-handling is done later in evaluation.
+  let t = String(s);
+  t = t.replace(/\bLn\s*\(/gi, "ln(");
+  t = t.replace(/\bLog\s*(?=\d|\()/gi, "log"); // "Log2(" or "Log("
+  return t;
+}
+
+
 function preprocessAbs(s) {
   // Convert |...| into abs(...) so math.js/nerdamer can parse absolute value.
   // Keeps '||' unchanged (logical OR), although it's rarely used in this tool.
@@ -125,7 +135,7 @@ function preprocessImplicitMul(s) {
   t = t.replace(/(\d)\s*([xyzt])/gi, "$1*$2");
 
   // number followed by '('
-  t = t.replace(/(\d)\s*\(/g, "$1*(");
+  t = t.replace(/(^|[^a-zA-Z0-9_])(\d)\s*\(/g, "$1$2*(");
 
   // ')' followed by number/variable/'('
   t = t.replace(/\)\s*(\d|[xyzt]|\()/gi, ")*$1");
@@ -152,6 +162,7 @@ function preprocessImplicitMul(s) {
 function preprocessAll(s) {
   let t = s;
   t = preprocessMinus(t);
+  t = preprocessLogNames(t);
   t = preprocessSuperscripts(t);
   t = preprocessSqrt(t);
   t = preprocessAbs(t);
@@ -227,6 +238,17 @@ function fixSqrtLatex(tex) {
 }
 function texPostprocess(tex) { return String(tex).replace(/(\d)\.(\d)/g, "$1,$2"); }
 
+// Some converters (or browser escaping) may accidentally drop the backslash in \left/\right,
+// producing 'left(' ... '\right)' which breaks KaTeX. Re-inject missing backslashes.
+function fixLeftRight(tex) {
+  let s = String(tex);
+  // left( left[ left|  -> \left( \left[ \left|
+  s = s.replace(/(^|[^\\])left([\(\[\|])/g, "$1\\left$2");
+  // right) right] right| -> \right) \right] \right|
+  s = s.replace(/(^|[^\\])right([\)\]\|])/g, "$1\\right$2");
+  return s;
+}
+
 
 function prettyMul(tex) {
   return String(tex)
@@ -259,10 +281,10 @@ function nerdToTex(expr) {
   // Prefer math.js TeX (usually KaTeX-friendly), fallback to nerdamer.
   try {
     const node = math.parse(String(expr));
-    return prettyMul(fixFrac(fixSqrtLatex(texPostprocess(node.toTex({ parenthesis: "keep" })))));
+    return prettyMul(fixLeftRight(fixFrac(fixSqrtLatex(texPostprocess(node.toTex({ parenthesis: "keep" }))))));
   } catch {
-    try { return prettyMul(fixFrac(fixSqrtLatex(texPostprocess(nerdamer(expr).toTeX())))); }
-    catch { return prettyMul(fixFrac(fixSqrtLatex(texPostprocess(expr)))); }
+    try { return prettyMul(fixLeftRight(fixFrac(fixSqrtLatex(texPostprocess(nerdamer(expr).toTeX()))))); }
+    catch { return prettyMul(fixLeftRight(fixFrac(fixSqrtLatex(texPostprocess(expr))))); }
   }
 }
 
@@ -573,15 +595,236 @@ function solveSystem(input) {
 }
 
 
+
+// ---------- log/ln helpers ----------
+function _isIntString(s) { return /^[-+]?\d+$/.test(String(s).trim()); }
+
+function simplifyBasicLogs(input) {
+  // Replace simple exact cases:
+  // log(10^n) = n, log(1000)=3, log2(8)=3, ln(e)=1, ln(e^n)=n
+  let s = String(input);
+
+  // Normalize names first
+  s = preprocessLogNames(s);
+
+  // ln(e) and ln(e^n)
+  s = s.replace(/\bln\s*\(\s*e\s*\)/gi, "1");
+  s = s.replace(/\bln\s*\(\s*e\s*\^\s*\(?\s*([-+]?\d+)\s*\)?\s*\)/gi, (_, n) => String(n));
+  s = s.replace(/\bln\s*\(\s*1\s*\)/gi, "0");
+
+  // log(1)=0 base10; log(10)=1; log(10^n)=n
+  s = s.replace(/\blog\s*\(\s*1\s*\)/gi, "0");
+  s = s.replace(/\blog\s*\(\s*10\s*\)/gi, "1");
+  s = s.replace(/\blog\s*\(\s*10\s*\^\s*\(?\s*([-+]?\d+)\s*\)?\s*\)/gi, (_, n) => String(n));
+
+  // log(1000) exact powers of 10
+  s = s.replace(/\blog\s*\(\s*(\d+)\s*\)/gi, (_, num) => {
+    if (!/^1(0+)$/.test(num)) return `log(${num})`;
+    const zeros = num.length - 1;
+    return String(zeros);
+  });
+
+  // logB( N ) with B and N integers: if N is exact power of B => exponent
+  // We scan for occurrences of "log<base>(<arg>)" with balanced parentheses (arg without nested is typical for this use).
+  let out = "";
+  for (let i = 0; i < s.length; i++) {
+    const rest = s.slice(i);
+    const m = rest.match(/^log\s*(\d+)\s*\(/i);
+    if (m) {
+      const base = parseInt(m[1], 10);
+      let j = i + m[0].length - 1; // points at '('
+      let depth = 0, k = j, inner = "";
+      for (; k < s.length; k++) {
+        const ch = s[k];
+        if (ch === '(') { depth++; if (depth > 1) inner += ch; continue; }
+        if (ch === ')') { depth--; if (depth === 0) break; inner += ch; continue; }
+        if (depth >= 1) inner += ch;
+      }
+      if (depth === 0) {
+        const innerTrim = inner.trim();
+        if (_isIntString(innerTrim) && base > 1) {
+          let n = Math.abs(parseInt(innerTrim, 10));
+          let exp = 0;
+          while (n > 1 && n % base === 0) { n = n / base; exp++; }
+          if (n === 1) {
+            // handle negative argument only if base is odd and exponent integer? keep symbolic for safety
+            const val = (parseInt(innerTrim, 10) < 0) ? `log${base}(${innerTrim})` : String(exp);
+            out += val;
+          } else out += `log${base}(${innerTrim})`;
+        } else {
+          out += `log${base}(${innerTrim})`;
+        }
+        i = k; // jump to ')'
+        continue;
+      }
+    }
+    out += s[i];
+  }
+  return out;
+}
+
+function transformLogsForMathJS(expr) {
+  // Convert:
+  //  - ln(x) -> log(x)  (natural log)
+  //  - log(x) -> log10(x) (base-10)
+  //  - logB(x) -> (log(x)/log(B)) for any integer base B
+  let s = preprocessLogNames(String(expr));
+
+  // Base logs log2(...), log10(...) etc: scan with parentheses matching
+  let out = "";
+  for (let i = 0; i < s.length; i++) {
+    const rest = s.slice(i);
+
+    // ln(
+    if (rest.match(/^ln\s*\(/i)) {
+      // normalize to log(
+      out += "log(";
+      i += rest.match(/^ln\s*\(/i)[0].length - 1;
+      continue;
+    }
+
+    // log<digits>(
+    const m = rest.match(/^log\s*(\d+)\s*\(/i);
+    if (m) {
+      const base = m[1];
+      // parse inner (...)
+      let j = i + m[0].length - 1; // '('
+      let depth = 0, k = j, inner = "";
+      for (; k < s.length; k++) {
+        const ch = s[k];
+        if (ch === '(') { depth++; if (depth > 1) inner += ch; continue; }
+        if (ch === ')') { depth--; if (depth === 0) break; inner += ch; continue; }
+        if (depth >= 1) inner += ch;
+      }
+      if (depth !== 0) throw new Error("Thiếu dấu ')' trong log" + base);
+      out += `(log(${inner})/log(${base}))`;
+      i = k; // at ')'
+      continue;
+    }
+
+    // plain log(  -> base10
+    if (rest.match(/^log\s*\(/i)) {
+      out += "log10(";
+      i += rest.match(/^log\s*\(/i)[0].length - 1;
+      continue;
+    }
+
+    out += s[i];
+  }
+  return out;
+}
+
+function postprocessLogLatex(tex) {
+  let s = String(tex);
+
+  // 1) log base 10 should display as "log" (no subscript 10)
+  s = s.replace(/\\log_\{10\}\\left\(([^)]*)\\right\)/g, "\\log\\left($1\\right)");
+  s = s.replace(/\\log_\{10\}\(([^)]*)\)/g, "\\log($1)");
+
+  // 2) Convert fractions of logs into log base:
+  //    \frac{\log\left(A\right)}{\log\left(B\right)} -> \log_{B}\left(A\right)
+  // Also handle \ln in numerator/denominator.
+  const fracRe = /\\frac\{\\(log|ln)\\left\(([^}]*)\\right\)\}\{\\(log|ln)\\left\(([^}]*)\\right\)\}/g;
+  s = s.replace(fracRe, (_, fn1, A, fn2, B) => `\\log_{${B}}\\left(${A}\\right)`);
+
+  // 3) Remaining natural logs: show as ln
+  // Convert \log\left( ... \right) to \ln\left( ... \right) when it's not a base-log (i.e., no subscript)
+  s = s.replace(/\\log\\left\(/g, "\\ln\\left(");
+
+  return s;
+}
+
+
+function tryPureLogLatex(exprSym) {
+  // If the whole expression is a single log/ln call that we did NOT simplify to a number,
+  // keep it symbolic (log/ln) and offer decimal via toggle.
+  const s = String(exprSym).trim();
+  // Quick reject if there are operators outside the outermost function call
+  // We'll parse "name(...)" with balanced parentheses.
+  const m = s.match(/^([a-zA-Z]+)\s*(\d+)?\s*\(/);
+  if (!m) return null;
+
+  // Determine function name + optional base digits like log2
+  let fn = m[1].toLowerCase();
+  let baseDigits = m[2] || "";
+
+  if (!(fn === "log" || fn === "ln")) return null;
+
+  // Find matching closing paren for the first "("
+  const openIdx = s.indexOf("(");
+  let depth = 0, closeIdx = -1;
+  for (let i = openIdx; i < s.length; i++) {
+    const ch = s[i];
+    if (ch === "(") depth++;
+    else if (ch === ")") {
+      depth--;
+      if (depth === 0) { closeIdx = i; break; }
+    }
+  }
+  if (closeIdx === -1) return null;
+  // Ensure nothing meaningful after closing paren
+  if (s.slice(closeIdx + 1).trim() !== "") return null;
+
+  const inner = s.slice(openIdx + 1, closeIdx).trim();
+
+  // Render inner to latex (best-effort)
+  let innerLatex = null;
+  try {
+    const innerProc = preprocessAll(inner);
+    innerLatex = texPostprocess(math.parse(innerProc).toTex({ parenthesis: "keep" }));
+  } catch {
+    innerLatex = inner; // fallback raw
+  }
+
+  // Build exact latex for log/ln
+  let exactLatex = "";
+  if (fn === "ln") {
+    exactLatex = `\\ln\\left(${innerLatex}\\right)`;
+  } else {
+    // fn === log
+    if (baseDigits) exactLatex = `\\log_{${baseDigits}}\\left(${innerLatex}\\right)`;
+    else exactLatex = `\\log\\left(${innerLatex}\\right)`; // base10 display
+  }
+
+  // Decimal value for toggle (using mathjs transform)
+  let decVal = null;
+  try {
+    const eNum = normalizeSqrtForCAS(transformLogsForMathJS(s));
+    decVal = Number(math.evaluate(eNum));
+    if (!Number.isFinite(decVal)) decVal = null;
+  } catch {}
+
+  if (decVal === null) return { exactLatex, toggle: null };
+
+  const decLatex = texPostprocess(formatDecimal(decVal, 12));
+  return {
+    exactLatex,
+    toggle: {
+      labelOn: "đổi sang thập phân",
+      labelOff: "đổi sang phân số",
+      exactLatexLines: [exactLatex],
+      decLatexLines: [decLatex],
+    }
+  };
+}
+
 function evalPreferExact(expr) {
   // NOTE: expr is already preprocessAll()-ed in solveOrEval.
-  const e = normalizeSqrtForCAS(expr);
+  const eSym = simplifyBasicLogs(expr);
+  // If it's a single log/ln call (e.g., log2(5)) and not reducible to an integer,
+  // keep it as log/ln by default (no decimal rational approximation).
+  const pureLog = tryPureLogLatex(eSym);
+  if (pureLog && !/^\s*[+-]?\d+(?:\.\d+)?\s*$/.test(String(eSym).trim())) {
+    return { payload: { lines: [{ type: "text", value: "Kết quả:" }, { type: "latex", value: pureLog.exactLatex }] }, toggle: pureLog.toggle };
+  }
+  const e = normalizeSqrtForCAS(transformLogsForMathJS(eSym));
 
   const hasSqrt = /sqrt\s*\(/i.test(e);
   const hasDecimal = /\d+\.\d+/.test(e);
+  const hasLog = /\b(log|ln)\b/i.test(eSym);
 
   // If user typed decimals and there is no sqrt, show decimal directly (avoid turning 2.33 into 233/100).
-  if (hasDecimal && !hasSqrt) {
+  if (hasDecimal && !hasSqrt && !hasLog) {
     try {
       const v = math.evaluate(e);
       const outLatex = texPostprocess(formatDecimal(v, 12));
@@ -595,7 +838,8 @@ function evalPreferExact(expr) {
     // Prefer exact/symbolic (so √2 stays √2, not a decimal).
     const n = nerdamer(e).simplify();
     const s = n.toString();
-    const exactLatex = nerdToTex(s);
+    let exactLatex = nerdToTex(s);
+    exactLatex = postprocessLogLatex(exactLatex);
 
     // Decimal approximation (for toggle)
     let decVal = null;
@@ -620,7 +864,7 @@ function evalPreferExact(expr) {
     }
 
     // For irrationals like √2, keep exact by default but allow decimal toggle.
-    if (decVal !== null && (hasSqrt || /sqrt|pi|e/i.test(s))) {
+    if (decVal !== null && (hasSqrt || hasLog || /sqrt|pi|e/i.test(s))) {
       const decLatex = texPostprocess(formatDecimal(decVal, 12));
       return { payload: { lines: [{ type: "text", value: "Kết quả:" }, { type: "latex", value: exactLatex }] },
                toggle: { exactLatexLines: [exactLatex], decLatexLines: [decLatex] } };
@@ -630,6 +874,21 @@ function evalPreferExact(expr) {
   } catch {
     // Fallback numeric
     const v = math.evaluate(e);
+
+    // If expression contains log/ln, keep symbolic by default and offer decimal via toggle.
+    if (hasLog) {
+      let exactLatex = texPostprocess(math.parse(e).toTex({ parenthesis: "keep" }));
+      exactLatex = postprocessLogLatex(exactLatex);
+      const decLatex = texPostprocess(formatDecimal(v, 12));
+      const toggle = {
+        labelOn: "đổi sang thập phân",
+        labelOff: "đổi sang phân số",
+        exactLatexLines: [exactLatex],
+        decLatexLines: [decLatex],
+      };
+      return { payload: { lines: [{ type: "text", value: "Kết quả:" }, { type: "latex", value: exactLatex }] }, toggle };
+    }
+
     return { payload: { lines: [{ type: "text", value: "Kết quả:" }, { type: "latex", value: texPostprocess(formatDecimal(v, 12)) }] }, toggle: null };
   }
 }
