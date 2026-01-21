@@ -288,4 +288,4 @@ clearBtn.addEventListener("click", () => {
 });
 
 // Initial hello
-addBotBubble("chào bạn 😄");
+addBotBubble("chào bạn, tôi là chatbot Btoan AI 😄");
