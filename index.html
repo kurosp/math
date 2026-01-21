@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Btoan AI</title>
+  <title>math tool</title>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -23,30 +23,102 @@
 </head>
 
 <body>
-  <h2>Btoan AI <span style="font-size:12px;color:#666;">v10</span></h2>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-title">math tool</div>
+        <span class="badge">v10</span>
+      </div>
+      <div class="brand-sub">Tính nhanh • đạo hàm • tích phân • đồ thị</div>
+    </header>
 
-  <div class="row">
-    <input id="cmd" placeholder='Ví dụ: 1+2 | 2,3+1 | 2x^3+3x^2-12x=0 | -d √x | -p √(x) dx | -g y=2×x+5' />
-    <button id="runBtn">tính</button>
-    <button id="toggleBtn" disabled>đổi sang thập phân</button>
-    <button id="clearBtn">xóa</button>
+    <main class="content">
+      <section class="card">
+        <label class="sr-only" for="cmd">Nhập lệnh</label>
+        <input id="cmd" class="cmd" placeholder="Ví dụ: 1+2 | 2,3+1 | 2x^3+3x^2-12x=0 | -d √x | -p √(x) dx | -g y=2×x+5" />
+
+        <div class="actions">
+          <button id="runBtn" class="btn primary">tính</button>
+          <button id="toggleBtn" class="btn" disabled>đổi sang thập phân</button>
+          <button id="clearBtn" class="btn danger">xóa</button>
+        </div>
+
+        <details class="help">
+          <summary>
+            hướng dẫn nhanh
+            <span class="summary-note">bấm để mở</span>
+          </summary>
+
+          <div class="help-body">
+            <div class="help-grid">
+              <div class="help-card">
+                <div class="help-title">tính</div>
+                <div class="chips">
+                  <button class="chip" type="button" data-example="1+2*(3-1)">1+2*(3-1)</button>
+                  <button class="chip" type="button" data-example="2,3+1">2,3+1</button>
+                  <button class="chip" type="button" data-example="2√2">2√2</button>
+                </div>
+                <div class="help-note">Dùng dấu <code>,</code> cho thập phân (vd <code>2,5</code>).</div>
+              </div>
+
+              <div class="help-card">
+                <div class="help-title">trị tuyệt đối</div>
+                <div class="chips">
+                  <button class="chip" type="button" data-example="|x|">|x|</button>
+                  <button class="chip" type="button" data-example="-g y=-|x|">-g y=-|x|</button>
+                </div>
+              </div>
+
+              <div class="help-card">
+                <div class="help-title">đạo hàm</div>
+                <div class="chips">
+                  <button class="chip" type="button" data-example="-d √x">-d √x</button>
+                  <button class="chip" type="button" data-example="-d √(x)+x^2">-d √(x)+x^2</button>
+                </div>
+              </div>
+
+              <div class="help-card">
+                <div class="help-title">nguyên hàm / tích phân</div>
+                <div class="chips">
+                  <button class="chip" type="button" data-example="-p √(x) dx">-p √(x) dx</button>
+                  <button class="chip" type="button" data-example="-p x dx from 0 to 2">-p x dx from 0 to 2</button>
+                </div>
+              </div>
+
+              <div class="help-card">
+                <div class="help-title">giải phương trình</div>
+                <div class="chips">
+                  <button class="chip" type="button" data-example="x+1=2">x+1=2</button>
+                  <button class="chip" type="button" data-example="2x^3+3x^2-12x=0">2x^3+3x^2-12x=0</button>
+                </div>
+              </div>
+
+              <div class="help-card">
+                <div class="help-title">đồ thị</div>
+                <div class="chips">
+                  <button class="chip" type="button" data-example="-g y=(x-2)/(x-1)">-g y=(x-2)/(x-1)</button>
+                  <button class="chip" type="button" data-example="-g (x^2+y^2-1)*3x^2y^3=0">-g (x^2+y^2-1)*3x^2y^3=0</button>
+                </div>
+                <div class="help-note">Mẹo: với phương trình ẩn, dùng dạng <code>...=0</code>.</div>
+              </div>
+            </div>
+          </div>
+        </details>
+      </section>
+
+      <section class="card">
+        <div id="out" class="outbox">Nhập lệnh rồi bấm “tính”.</div>
+      </section>
+
+      <section class="card">
+        <div id="plot" class="plot"></div>
+      </section>
+
+      <div class="footer">
+        Mẹo nhỏ: nếu muốn xem xấp xỉ, bấm <strong>đổi sang thập phân</strong>.
+      </div>
+    </main>
   </div>
-
-  <p class="hint">
-    Hỗ trợ nhanh:
-    <br>• Tính: <code>1+2*(3-1)</code> | <code>2,3+1</code>
-    <br>• Nhân: hỗ trợ <code>*</code>, <code>×</code>, <code>.</code> (ví dụ <code>2×x</code>, <code>2.x</code>, <code>2×2√2</code>, <code>5x</code>)
-    <br>• Dấu căn: hỗ trợ cả <code>sqrt(...)</code> và <code>√(...)</code> / <code>√x</code>
-    <br>• Trị tuyệt đối: <code>|x|</code> (ví dụ <code>-g y=-|x|</code>)
-    <br>• Giải 1 phương trình: <code>x+1=2</code> hoặc <code>2x^3+3x^2-12x=0</code> (bậc 2–4 có thêm cực trị)
-    <br>• Giải hệ (tối đa 4 ẩn x,y,z,t): <code>x+y=5; x-y=1</code>
-    <br>• Đạo hàm: <code>-d √x</code> | <code>-d √(x)+x^2</code>
-    <br>• Nguyên hàm / tích phân: <code>-p √(x) dx</code> | <code>-p x dx from 0 to 2</code>
-    <br>• Đồ thị: <code>-g y=(x-2)/(x-1)</code>
-  </p>
-
-  <div id="out" class="outbox">Nhập lệnh rồi bấm “tính”.</div>
-  <div id="plot"></div>
 
   <script src="./app_v10.js"></script>
 </body>

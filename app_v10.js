@@ -733,3 +733,17 @@ window.addEventListener("resize", () => {
     }
   }
 });
+
+
+// ---------- UI helpers (examples) ----------
+try {
+  document.querySelectorAll('[data-example]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const v = btn.getAttribute('data-example') || '';
+      if (!v) return;
+      const inp = $("cmd");
+      inp.value = v;
+      inp.focus();
+    });
+  });
+} catch (_) {}
