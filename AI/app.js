@@ -1,7 +1,7 @@
 // ====== cấu hình chỉnh trong code ======
 // Dán 5 API key của bạn vào đây:
 const API_KEYS = [
-  "AIzaSyD4IYE1g3zEUa3tHQ0yN9JqBqDcu1xpuj0",
+  "AIzaSyDr86OtHHTYjZI5TQFD4YKfDvBhn6XbIuM",
   "AIzaSyCqPYZMqK6_ykbMcHAK69V4Kb09X-YXxls",
   "AIzaSyBgRBxZEzi6dEXt4dj9f_qbg6zsm4aLVBg",
   "AIzaSyDGFt2b0IkLIf3I967GzX0q7GJs8o2x20k",
