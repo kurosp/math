@@ -1,0 +1,97 @@
+:root{
+  --chat-font: 13px;      /* chữ nhỏ lại */
+  --line: 1.35;           /* sát hơn */
+  --pad: 8px;             /* padding nhỏ */
+  --radius: 14px;
+  --btn-font: 11px;
+  --math-scale: 0.86;     /* scale công thức */
+}
+
+body { font-family: system-ui, Arial; margin: 0; background:#f6f7fb; }
+.wrap { max-width: 820px; margin: 0 auto; padding: 12px; }
+
+.chat{
+  background:#fff; border-radius: var(--radius); padding: 10px;
+  height: 80vh; overflow:auto;
+  box-shadow: 0 6px 20px rgba(0,0,0,.06);
+}
+
+.msgrow { margin: 8px 0; display:flex; }
+.me { justify-content:flex-end; }
+.bot { justify-content:flex-start; }
+
+.bubble{
+  position: relative;
+  max-width: 90%;
+  padding: var(--pad);
+  border-radius: var(--radius);
+  line-height: var(--line);
+  font-size: var(--chat-font);
+  white-space: normal;
+  overflow: hidden;
+}
+
+.me .bubble { background:#2b6cff; color:#fff; border-bottom-right-radius: 6px; }
+.bot .bubble {
+  background:#f0f2f7; color:#111;
+  border-bottom-left-radius: 6px;
+  padding-top: 30px; /* chừa chỗ nút copy */
+  contain: content;
+}
+
+/* text dài không có khoảng trắng */
+.bubble, .bubble * { overflow-wrap: anywhere; word-break: break-word; }
+
+.copy-btn{
+  position: absolute;
+  top: 6px; right: 6px;
+  font-size: var(--btn-font);
+  padding: 5px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(0,0,0,.12);
+  background: rgba(255,255,255,.9);
+  cursor: pointer;
+}
+
+.bar { display:flex; gap:10px; margin-top: 10px; }
+.bar input{
+  flex:1;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #d9dce7;
+  outline: none;
+  box-sizing: border-box;
+  font-size: 14px; /* ô nhập vẫn dễ nhìn */
+}
+button{
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: none;
+  background:#111;
+  color:#fff;
+  cursor:pointer;
+}
+button:disabled{ opacity:.6; cursor:not-allowed; }
+.hint { font-size: 11px; opacity: .7; margin-top: 6px; line-height: 1.25; }
+
+/* MathJax: chữ nhỏ + nếu dài thì cuộn ngang trong chính bubble */
+.bot mjx-container{
+  font-size: calc(var(--chat-font) * var(--math-scale)) !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;    /* công thức dài -> cuộn ngang */
+  overflow-y: hidden !important;
+  display:block;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Status/cooldown banner */
+.status{
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: #fff3cd;
+  border: 1px solid rgba(0,0,0,.08);
+  font-size: 12px;
+  line-height: 1.25;
+  opacity: .95;
+}

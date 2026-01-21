@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>chatbot gemini</title>
+
+  <link rel="stylesheet" href="./style.css" />
+
+  <!-- MathJax config -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$']],
+        displayMath: [['$$', '$$']],
+        processEscapes: true
+      },
+      options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+
+<body>
+  <div class="wrap">
+    <div id="chat" class="chat"></div>
+    <div id="status" class="status" style="display:none;"></div>
+
+    <div class="bar">
+      <input id="msg" placeholder="nhập tin nhắn..." autocomplete="off" />
+      <button id="send">gửi</button>
+      <button id="clear">xoá</button>
+    </div>
+
+    <div class="hint">
+      nếu gặp lỗi “failed to fetch / cors”, trình duyệt đang chặn gọi trực tiếp → cần server trung gian.
+    </div>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>
