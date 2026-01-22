@@ -1,50 +1,15 @@
+// ====== cấu hình ======
 const WORKER_URL = "https://btoan-gemini-proxy.workers.dev";
-
-async function callGemini(userText){
-  const payload = {
-    contents: [...history, { role: "user", parts: [{ text: userText }] }],
-    generationConfig: { temperature: TEMPERATURE, maxOutputTokens: MAX_OUTPUT_TOKENS },
-    systemInstruction: { parts: [{ text: SYSTEM_INSTRUCTION }] }
-  };
-
-  const res = await fetch(WORKER_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ model: MODEL, payload })
-  });
-
-  const raw = await res.text();
-  let data;
-  try { data = JSON.parse(raw); } catch { data = { raw }; }
-
-  if (!res.ok) {
-    const msg = data?.error?.message || data?.raw || ("http " + res.status);
-    throw new Error(msg);
-  }
-
-  const parts = data?.candidates?.[0]?.content?.parts || [];
-  const reply = parts.map(p => p.text).filter(Boolean).join("\n").trim();
-  if (!reply) return "mình chưa nhận được câu trả lời 😅";
-
-  history.push({ role: "user", parts: [{ text: userText }] });
-  history.push({ role: "model", parts: [{ text: reply }] });
-  if (history.length > 20) history = history.slice(-20);
-
-  return reply;
-}
 
 const MODEL = "gemini-2.5-flash";
 const TEMPERATURE = 0.7;
 const MAX_OUTPUT_TOKENS = 5000;
 
-// Khi hết cả 5 key, chờ tối thiểu X giây rồi quay lại key #1 thử lại
-const COOLDOWN_DEFAULT_SECONDS = 10;
-
 const SYSTEM_INSTRUCTION =
   "Bạn trả lời tiếng Việt, trình bày gọn gàng. " +
   "Công thức dùng LaTeX trong $...$ hoặc $$...$$. " +
   "Nếu biểu thức dài, ưu tiên tách dòng hoặc dùng nhiều dòng.";
-// =======================================
+// =======================
 
 const chatEl = document.getElementById("chat");
 const statusEl = document.getElementById("status");
@@ -142,155 +107,39 @@ function hideStatus(){
   statusEl.textContent = "";
 }
 
-function formatMMSS(ms){
-  const s = Math.max(0, Math.ceil(ms / 1000));
-  const m = Math.floor(s / 60);
-  const r = s % 60;
-  return `${m}:${String(r).padStart(2, "0")}`;
-}
-
-// ===== FIX: auto-trim key để tránh dính khoảng trắng =====
-const KEYS = API_KEYS.map(k => (k || "").trim()).filter(Boolean);
-
-// ---------- Key rotation + cooldown ----------
-let keyIndex = Number(localStorage.getItem("gemini_key_index") || 0);
-let cooldownUntil = Number(localStorage.getItem("gemini_cooldown_until") || 0);
-let countdownTimer = null;
-
-function getApiKey(){
-  return KEYS[keyIndex % KEYS.length];
-}
-function rotateKey(){
-  keyIndex = (keyIndex + 1) % KEYS.length;
-  localStorage.setItem("gemini_key_index", String(keyIndex));
-  return getApiKey();
-}
-function resetToFirstKey(){
-  keyIndex = 0;
-  localStorage.setItem("gemini_key_index", "0");
-}
-
-function setCooldown(seconds){
-  cooldownUntil = Date.now() + seconds * 1000;
-  localStorage.setItem("gemini_cooldown_until", String(cooldownUntil));
-  startCountdown();
-}
-
-function clearCooldown(){
-  cooldownUntil = 0;
-  localStorage.removeItem("gemini_cooldown_until");
-  stopCountdown();
-  hideStatus();
-}
-
-function startCountdown(){
-  stopCountdown();
-  sendBtn.disabled = true;
-
-  const tick = () => {
-    const left = cooldownUntil - Date.now();
-    if (left <= 0) {
-      clearCooldown();
-      resetToFirstKey();
-      sendBtn.disabled = false;
-      addBotBubble("✅ Đã hết thời gian chờ. Mình thử lại từ key #1 nha.");
-      return;
-    }
-    showStatus(`⏳ Hết cả 5 key. Đang chờ hồi quota… còn ${formatMMSS(left)} rồi thử lại từ key #1.`);
-  };
-
-  tick();
-  countdownTimer = setInterval(tick, 500);
-}
-
-function stopCountdown(){
-  if (countdownTimer) clearInterval(countdownTimer);
-  countdownTimer = null;
-}
-
-// Nếu đang cooldown mà reload trang, tự chạy lại countdown
-if (cooldownUntil && Date.now() < cooldownUntil) startCountdown();
-
-// ---------- Gemini call with auto-rotate ----------
+// ---------- Gemini via Worker ----------
 async function callGemini(userText){
-  if (cooldownUntil && Date.now() < cooldownUntil) {
-    throw new Error("đang chờ hồi quota: còn " + formatMMSS(cooldownUntil - Date.now()));
-  }
-
-  if (!KEYS?.length || KEYS.length < 5) {
-    throw new Error("bạn chưa dán đủ 5 API key (hoặc có key bị trống/space).");
-  }
-
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
-
+  showStatus("đang trả lời...");
   const payload = {
     contents: [...history, { role: "user", parts: [{ text: userText }] }],
     generationConfig: { temperature: TEMPERATURE, maxOutputTokens: MAX_OUTPUT_TOKENS },
     systemInstruction: { parts: [{ text: SYSTEM_INSTRUCTION }] }
   };
 
-  let lastErr = null;
-  let bestRetryAfter = 0;
+  const res = await fetch(WORKER_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ model: MODEL, payload })
+  });
 
-  for (let attempt = 0; attempt < KEYS.length; attempt++) {
-    const apiKey = getApiKey();
+  const raw = await res.text();
+  let data;
+  try { data = JSON.parse(raw); } catch { data = { raw }; }
 
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
-      body: JSON.stringify(payload)
-    });
-
-    const ra = res.headers.get("retry-after");
-    const raSec = ra ? Number(ra) : 0;
-    if (Number.isFinite(raSec) && raSec > bestRetryAfter) bestRetryAfter = raSec;
-
-    const raw = await res.text();
-    let data;
-    try { data = JSON.parse(raw); } catch { data = { raw }; }
-
-    if (res.ok) {
-      clearCooldown();
-
-      const parts = data?.candidates?.[0]?.content?.parts || [];
-      const reply = parts.map(p => p.text).filter(Boolean).join("\n").trim();
-      if (!reply) return "mình chưa nhận được câu trả lời 😅";
-
-      history.push({ role: "user", parts: [{ text: userText }] });
-      history.push({ role: "model", parts: [{ text: reply }] });
-      if (history.length > 20) history = history.slice(-20);
-
-      return reply;
-    }
-
-    const msg = data?.error?.message || data?.raw || `http ${res.status}`;
-    lastErr = msg;
-
-    // ✅ CHỈ XOAY KEY KHI QUOTA / RATE LIMIT
-    const rotateWorthy =
-      res.status === 429 ||
-      /quota|exceed|rate|limit|RESOURCE_EXHAUSTED|Too Many Requests/i.test(msg);
-
-    if (rotateWorthy) {
-      rotateKey();
-      continue;
-    }
-
-    // ✅ 401/403: key sai / bị chặn domain-referrer -> KHÔNG XOAY
-    if (res.status === 401 || res.status === 403) {
-      throw new Error(
-        "API bị chặn (401/403). Thường do key bị giới hạn domain/referrer hoặc chưa bật đúng dịch vụ. " +
-        "Vào nơi tạo key -> Restrictions -> thêm domain github.io của bạn."
-      );
-    }
-
+  if (!res.ok) {
+    const msg = data?.error?.message || data?.raw || ("http " + res.status);
     throw new Error(msg);
   }
 
-  // hết cả 5 key (do quota/rate-limit)
-  const waitSec = Math.max(bestRetryAfter || 0, COOLDOWN_DEFAULT_SECONDS);
-  setCooldown(waitSec);
-  throw new Error("hết cả 5 key. bật chế độ chờ hồi quota...");
+  const parts = data?.candidates?.[0]?.content?.parts || [];
+  const reply = parts.map(p => p.text).filter(Boolean).join("\n").trim();
+  if (!reply) return "mình chưa nhận được câu trả lời 😅";
+
+  history.push({ role: "user", parts: [{ text: userText }] });
+  history.push({ role: "model", parts: [{ text: reply }] });
+  if (history.length > 20) history = history.slice(-20);
+
+  return reply;
 }
 
 // ---------- Send flow ----------
@@ -308,7 +157,8 @@ async function send(){
   }catch(e){
     addBotBubble("lỗi: " + e.message);
   }finally{
-    if (!(cooldownUntil && Date.now() < cooldownUntil)) sendBtn.disabled = false;
+    hideStatus();
+    sendBtn.disabled = false;
     msgEl.focus();
   }
 }
@@ -324,4 +174,4 @@ clearBtn.addEventListener("click", () => {
 });
 
 // Initial hello
-addBotBubble("chào bạn, tôi là chatbot Btoan AI 😄");
+addBotBubble("chào bạn, tôi là chatbot Btoan AI 😄.");
