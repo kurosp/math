@@ -293,4 +293,4 @@ chatEl.addEventListener("scroll", updateScrollButton);
 window.addEventListener("resize", updateScrollButton);
 
 // Initial hello
-addBotBubble("chào bạn, tôi là chatbot Toan AI 😄.");
+addBotBubble("chào bạn, tôi là chatbot Btoan AI 😄");
