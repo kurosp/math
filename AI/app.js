@@ -1,12 +1,37 @@
-// ====== cấu hình chỉnh trong code ======
-// Dán 5 API key của bạn vào đây:
-const API_KEYS = [
-  "AIzaSyDqsOQ_QW-l3yVupKWL693QIYlgOfMENrA",
-  "AIzaSyCqPYZMqK6_ykbMcHAK69V4Kb09X-YXxls",
-  "AIzaSyBgRBxZEzi6dEXt4dj9f_qbg6zsm4aLVBg",
-  "AIzaSyDGFt2b0IkLIf3I967GzX0q7GJs8o2x20k",
-  " AIzaSyCsoth235SBzlAAP1QY8Re_O8bmDOfLHB0"
-];
+const WORKER_URL = "https://btoan-gemini-proxy.workers.dev";
+
+async function callGemini(userText){
+  const payload = {
+    contents: [...history, { role: "user", parts: [{ text: userText }] }],
+    generationConfig: { temperature: TEMPERATURE, maxOutputTokens: MAX_OUTPUT_TOKENS },
+    systemInstruction: { parts: [{ text: SYSTEM_INSTRUCTION }] }
+  };
+
+  const res = await fetch(WORKER_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ model: MODEL, payload })
+  });
+
+  const raw = await res.text();
+  let data;
+  try { data = JSON.parse(raw); } catch { data = { raw }; }
+
+  if (!res.ok) {
+    const msg = data?.error?.message || data?.raw || ("http " + res.status);
+    throw new Error(msg);
+  }
+
+  const parts = data?.candidates?.[0]?.content?.parts || [];
+  const reply = parts.map(p => p.text).filter(Boolean).join("\n").trim();
+  if (!reply) return "mình chưa nhận được câu trả lời 😅";
+
+  history.push({ role: "user", parts: [{ text: userText }] });
+  history.push({ role: "model", parts: [{ text: reply }] });
+  if (history.length > 20) history = history.slice(-20);
+
+  return reply;
+}
 
 const MODEL = "gemini-2.5-flash";
 const TEMPERATURE = 0.7;
