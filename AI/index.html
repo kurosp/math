@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Btoan AI</title>
+  <title>Toan AI</title>
 
   <link rel="stylesheet" href="./style.css" />
 
@@ -19,6 +19,11 @@
     };
   </script>
   <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+
+  <!-- syntax highlight for code blocks -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/highlight.min.js"></script>
+
 </head>
 
 <body>
@@ -29,7 +34,7 @@
       <div class="topbar__left">
         <div class="topbar__avatar">T</div>
         <div>
-          <div class="topbar__title">Btoan AI</div>
+          <div class="topbar__title">Toan AI</div>
           <div class="topbar__sub"><span class="dot"></span>đang hoạt động</div>
         </div>
       </div>
@@ -49,7 +54,7 @@
     <div id="status" class="status" style="display:none;"></div>
 
     <div id="composer" class="bar">
-      <div class="textwrap"><textarea id="msg" placeholder="Nhập tin nhắn..." autocomplete="off" rows="1"></textarea></div>
+      <div class="textwrap"><textarea id="msg" placeholder="nhập tin nhắn..." autocomplete="off" rows="1"></textarea></div>
       <button id="send">gửi</button>
 </div>
 

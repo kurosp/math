@@ -5,10 +5,11 @@ const TEMPERATURE = 0.7;
 const MAX_OUTPUT_TOKENS = 5000;
 
 const SYSTEM_INSTRUCTION =
-"Bạn trả lời nhẹ nhàng, luôn khen người dùng hỏi rất hay." +
-  "Bạn trả lời tiếng Việt, trình bày gọn gàng. " +
-  "Công thức dùng LaTeX trong $...$ hoặc $$...$$. " +
-  "Nếu biểu thức dài, ưu tiên tách dòng hoặc dùng nhiều dòng.";
+  "Nói tiếng Việt, xưng tao–mày. Giọng cà khịa, láo láo cho vui, có thể chửi thề nhẹ/ vừa (vcl, đm, vãi, vl...) nhưng đừng spam quá lố. " +
+  "Trả lời thẳng, ngắn gọn, không văn mẫu, không mở bài dài dòng. " +
+  "Chèn nhiều icon mặt cho sinh động (gần như mỗi câu 1–3 cái), ưu tiên emoji mặt kiểu bàn phím Google: " +
+  "😀😁😂🤣😅😆😉😊🙂🙃😇😍😘😗😙😚😋😜😝🤪🤨🧐🤓😎🥸🤩🥳😏😒😞😔😟😕🙁☹️😣😖😫😩🥺😢😭😤😠😡🤬😱😨😰😥😓🤗🤔🫢🫣😶‍🌫️😶😐😑🫤🙄😬🤥😴🤤😪😮‍💨😮😯😲🥱😵😵‍💫🤯🤠🥴🤧🤢🤮🤫🤭🫡 " +
+  "Nếu là toán/hoá: trình bày rõ ràng, công thức dùng LaTeX trong $...$ hoặc $$...$$. Nếu biểu thức dài thì tách dòng.";
 // =======================
 
 const chatEl = document.getElementById("chat");
@@ -44,13 +45,51 @@ function escapeHtml(s){
 }
 
 function renderPrettyText(raw){
-  let s = raw ?? "";
-  s = s.replace(/\r\n/g, "\n");
-  s = s.replace(/(^|\n)\s*\*\s+/g, "$1• ");
-  s = escapeHtml(s);
-  s = s.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
-  s = s.replace(/\n/g, "<br>");
-  return s;
+  // Render: bullets + bold + code blocks (```lang ... ```)
+  const src = (raw ?? "").replace(/\r\n/g, "\n");
+
+  const reCode = /```(\w+)?\n([\s\S]*?)```/g;
+  let out = "";
+  let last = 0;
+  let m;
+
+  const renderText = (txt) => {
+    let s = txt;
+    s = s.replace(/(^|\n)\s*\*\s+/g, "$1• ");
+    s = escapeHtml(s);
+    s = s.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
+    s = s.replace(/\n/g, "<br>");
+    return s;
+  };
+
+  while ((m = reCode.exec(src)) !== null) {
+    out += renderText(src.slice(last, m.index));
+
+    const lang = (m[1] || "txt").toLowerCase();
+    const codeRaw = m[2] ?? "";
+    const codeEsc = escapeHtml(codeRaw);
+
+    out += `
+      <div class="codeblock" data-lang="${lang}">
+        <div class="codebar">
+          <div class="lang">${lang}</div>
+          <button class="codecopy" type="button" title="Sao chép mã">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+              <rect x="2" y="2" width="13" height="13" rx="2"></rect>
+            </svg>
+            <span>Sao chép mã</span>
+          </button>
+        </div>
+        <pre class="codepre"><code class="language-${lang}">${codeEsc}</code></pre>
+      </div>
+    `;
+
+    last = reCode.lastIndex;
+  }
+
+  out += renderText(src.slice(last));
+  return out.trim();
 }
 
 async function copyText(text){
@@ -89,6 +128,7 @@ function addBotBubble(rawText){
   const btn = document.createElement("button");
   btn.className = "copy-btn";
   btn.type = "button";
+  btn.setAttribute("title","Sao chép");
   btn.innerHTML = ICON_COPY;
   btn.addEventListener("click", async () => {
     const ok = await copyText(rawText);
@@ -108,6 +148,24 @@ function addBotBubble(rawText){
   row.appendChild(bubble);
   chatEl.appendChild(row);
   chatEl.scrollTop = chatEl.scrollHeight;
+
+  // Code block copy buttons
+  bubble.querySelectorAll(".codecopy").forEach((b) => {
+    b.addEventListener("click", async () => {
+      const code = b.closest(".codeblock")?.querySelector("code")?.innerText || "";
+      const ok = await copyText(code);
+      const label = b.querySelector("span");
+      if (label) label.textContent = ok ? "Đã copy" : "Copy lỗi";
+      setTimeout(() => { if (label) label.textContent = "Sao chép mã"; }, 900);
+    });
+  });
+
+  // Syntax highlight
+  if (window.hljs) {
+    bubble.querySelectorAll("pre code").forEach((el) => {
+      try { window.hljs.highlightElement(el); } catch {}
+    });
+  }
 
   if (window.MathJax?.typesetPromise) {
     window.MathJax.typesetPromise([bubble]).catch(() => {});
@@ -293,4 +351,4 @@ chatEl.addEventListener("scroll", updateScrollButton);
 window.addEventListener("resize", updateScrollButton);
 
 // Initial hello
-addBotBubble("chào bạn, tôi là chatbot Btoan AI 😄");
+addBotBubble("chào bạn, tôi là chatbot Toan AI 😄.");
