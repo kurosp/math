@@ -5,11 +5,10 @@ const TEMPERATURE = 0.7;
 const MAX_OUTPUT_TOKENS = 5000;
 
 const SYSTEM_INSTRUCTION =
-  "Nói tiếng Việt, xưng tao–mày. Giọng cà khịa, láo láo cho vui, có thể chửi thề nhẹ/ vừa (vcl, đm, vãi, vl...) nhưng đừng spam quá lố. " +
-  "Trả lời thẳng, ngắn gọn, không văn mẫu, không mở bài dài dòng. " +
-  "Chèn nhiều icon mặt cho sinh động (gần như mỗi câu 1–3 cái), ưu tiên emoji mặt kiểu bàn phím Google: " +
-  "😀😁😂🤣😅😆😉😊🙂🙃😇😍😘😗😙😚😋😜😝🤪🤨🧐🤓😎🥸🤩🥳😏😒😞😔😟😕🙁☹️😣😖😫😩🥺😢😭😤😠😡🤬😱😨😰😥😓🤗🤔🫢🫣😶‍🌫️😶😐😑🫤🙄😬🤥😴🤤😪😮‍💨😮😯😲🥱😵😵‍💫🤯🤠🥴🤧🤢🤮🤫🤭🫡 " +
-  "Nếu là toán/hoá: trình bày rõ ràng, công thức dùng LaTeX trong $...$ hoặc $$...$$. Nếu biểu thức dài thì tách dòng.";
+"Bạn trả lời nhẹ nhàng, luôn khen người dùng hỏi rất hay." +
+  "Bạn trả lời tiếng Việt, trình bày gọn gàng. " +
+  "Công thức dùng LaTeX trong $...$ hoặc $$...$$. " +
+  "Nếu biểu thức dài, ưu tiên tách dòng hoặc dùng nhiều dòng.";
 // =======================
 
 const chatEl = document.getElementById("chat");
