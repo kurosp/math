@@ -1,7 +1,7 @@
 // ====== cấu hình chỉnh trong code ======
 // Dán 5 API key của bạn vào đây:
 const API_KEYS = [
-  "AIzaSyDr86OtHHTYjZI5TQFD4YKfDvBhn6XbIuM",
+  "AIzaSyDpFhjVWPFUkf27g1lNXNDLhPVY0t7ywt8",
   "AIzaSyCqPYZMqK6_ykbMcHAK69V4Kb09X-YXxls",
   "AIzaSyBgRBxZEzi6dEXt4dj9f_qbg6zsm4aLVBg",
   "AIzaSyDGFt2b0IkLIf3I967GzX0q7GJs8o2x20k",
@@ -13,7 +13,7 @@ const TEMPERATURE = 0.7;
 const MAX_OUTPUT_TOKENS = 7500;
 
 // Khi hết cả 5 key, chờ tối thiểu X giây rồi quay lại key #1 thử lại
-const COOLDOWN_DEFAULT_SECONDS = 120;
+const COOLDOWN_DEFAULT_SECONDS = 10;
 
 const SYSTEM_INSTRUCTION =
   "Bạn trả lời tiếng Việt, trình bày gọn gàng. " +
