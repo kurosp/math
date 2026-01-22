@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Btoan AI</title>
 
   <link rel="stylesheet" href="./style.css" />
@@ -22,21 +22,42 @@
 </head>
 
 <body>
+</div>
+  </div>
   <div class="wrap">
+    <header class="topbar">
+      <div class="topbar__left">
+        <div class="topbar__avatar">T</div>
+        <div>
+          <div class="topbar__title">Btoan AI</div>
+          <div class="topbar__sub"><span class="dot"></span>đang hoạt động</div>
+        </div>
+      </div>
+
+      <div class="topbar__center">
+        <button id="clear" class="clear-top" type="button" aria-label="xoá lịch sử">
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l1 2h5v2H3V5h5l1-2zm1 6h2v10h-2V9zm4 0h2v10h-2V9zM7 9h2v10H7V9z"/></svg>
+          <span>xoá</span>
+        </button>
+      </div>
+    
+      <button id="scrollBottom" class="scroll-bottom" type="button" aria-label="xuống cuối">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 5v12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M7 12l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </header>
     <div id="chat" class="chat"></div>
     <div id="status" class="status" style="display:none;"></div>
 
-    <div class="bar">
-      <input id="msg" placeholder="nhập tin nhắn..." autocomplete="off" />
+    <div id="composer" class="bar">
+      <div class="textwrap"><textarea id="msg" placeholder="Nhập tin nhắn..." autocomplete="off" rows="1"></textarea></div>
       <button id="send">gửi</button>
-      <button id="clear">xoá</button>
-    </div>
+</div>
 
     <div class="hint">
       <p style="text-align: center;">AI được thành lập bởi Dev Nguyễn Bảo Toàn</p>
     </div>
   </div>
-<a href="../index.html"><p>Về Trang Chủ</p></a>
+  <a class="home-btn" href="../index.html" aria-label="Về trang chủ">🏠</a>
   <script src="./app.js"></script>
 </body>
 </html>
