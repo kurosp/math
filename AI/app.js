@@ -124,16 +124,19 @@ function formatMMSS(ms){
   return `${m}:${String(r).padStart(2, "0")}`;
 }
 
+// ===== FIX: auto-trim key để tránh dính khoảng trắng =====
+const KEYS = API_KEYS.map(k => (k || "").trim()).filter(Boolean);
+
 // ---------- Key rotation + cooldown ----------
 let keyIndex = Number(localStorage.getItem("gemini_key_index") || 0);
 let cooldownUntil = Number(localStorage.getItem("gemini_cooldown_until") || 0);
 let countdownTimer = null;
 
 function getApiKey(){
-  return API_KEYS[keyIndex % API_KEYS.length];
+  return KEYS[keyIndex % KEYS.length];
 }
 function rotateKey(){
-  keyIndex = (keyIndex + 1) % API_KEYS.length;
+  keyIndex = (keyIndex + 1) % KEYS.length;
   localStorage.setItem("gemini_key_index", String(keyIndex));
   return getApiKey();
 }
@@ -189,8 +192,8 @@ async function callGemini(userText){
     throw new Error("đang chờ hồi quota: còn " + formatMMSS(cooldownUntil - Date.now()));
   }
 
-  if (!API_KEYS?.length || API_KEYS.length < 5 || API_KEYS.some(k => !k || k.includes("KEY_"))) {
-    throw new Error("bạn chưa dán đủ 5 API key vào API_KEYS trong app.js");
+  if (!KEYS?.length || KEYS.length < 5) {
+    throw new Error("bạn chưa dán đủ 5 API key (hoặc có key bị trống/space).");
   }
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
@@ -204,7 +207,7 @@ async function callGemini(userText){
   let lastErr = null;
   let bestRetryAfter = 0;
 
-  for (let attempt = 0; attempt < API_KEYS.length; attempt++) {
+  for (let attempt = 0; attempt < KEYS.length; attempt++) {
     const apiKey = getApiKey();
 
     const res = await fetch(url, {
@@ -238,8 +241,9 @@ async function callGemini(userText){
     const msg = data?.error?.message || data?.raw || `http ${res.status}`;
     lastErr = msg;
 
+    // ✅ CHỈ XOAY KEY KHI QUOTA / RATE LIMIT
     const rotateWorthy =
-      res.status === 401 || res.status === 403 || res.status === 429 ||
+      res.status === 429 ||
       /quota|exceed|rate|limit|RESOURCE_EXHAUSTED|Too Many Requests/i.test(msg);
 
     if (rotateWorthy) {
@@ -247,10 +251,18 @@ async function callGemini(userText){
       continue;
     }
 
+    // ✅ 401/403: key sai / bị chặn domain-referrer -> KHÔNG XOAY
+    if (res.status === 401 || res.status === 403) {
+      throw new Error(
+        "API bị chặn (401/403). Thường do key bị giới hạn domain/referrer hoặc chưa bật đúng dịch vụ. " +
+        "Vào nơi tạo key -> Restrictions -> thêm domain github.io của bạn."
+      );
+    }
+
     throw new Error(msg);
   }
 
-  // hết cả 5 key
+  // hết cả 5 key (do quota/rate-limit)
   const waitSec = Math.max(bestRetryAfter || 0, COOLDOWN_DEFAULT_SECONDS);
   setCooldown(waitSec);
   throw new Error("hết cả 5 key. bật chế độ chờ hồi quota...");
@@ -271,7 +283,6 @@ async function send(){
   }catch(e){
     addBotBubble("lỗi: " + e.message);
   }finally{
-    // nếu đang cooldown thì sendBtn sẽ bị startCountdown disable lại
     if (!(cooldownUntil && Date.now() < cooldownUntil)) sendBtn.disabled = false;
     msgEl.focus();
   }
@@ -288,4 +299,4 @@ clearBtn.addEventListener("click", () => {
 });
 
 // Initial hello
-addBotBubble("chào bạn, tôi là chatbot Btoan AI 😄.");
+addBotBubble("chào bạn, tôi là chatbot Btoan AI 😄");
