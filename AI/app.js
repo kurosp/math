@@ -1,6 +1,5 @@
 // ====== cấu hình ======
-const WORKER_URL = "https://btoan-gemini-proxy.ss1sien.workers.dev";
-
+const WORKER_URL = "https://gemini-proxy-vercel-roan.vercel.app/api/gemini";
 const MODEL = "gemini-2.5-flash";
 const TEMPERATURE = 0.7;
 const MAX_OUTPUT_TOKENS = 5000;
@@ -176,4 +175,4 @@ clearBtn.addEventListener("click", () => {
 });
 
 // Initial hello
-addBotBubble("chào bạn, tôi là chatbot Btoan AI 😄");
+addBotBubble("chào bạn, tôi là chatbot Btoan AI 😄.");
