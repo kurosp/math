@@ -1,7 +1,7 @@
 // ====== cấu hình chỉnh trong code ======
 // Dán 5 API key của bạn vào đây:
 const API_KEYS = [
-  "AIzaSyAIVwOr9eIQRy37pD7dKV_QUwpUnzm1rMg",
+  "AIzaSyDqsOQ_QW-l3yVupKWL693QIYlgOfMENrA",
   "AIzaSyCqPYZMqK6_ykbMcHAK69V4Kb09X-YXxls",
   "AIzaSyBgRBxZEzi6dEXt4dj9f_qbg6zsm4aLVBg",
   "AIzaSyDGFt2b0IkLIf3I967GzX0q7GJs8o2x20k",
@@ -288,4 +288,4 @@ clearBtn.addEventListener("click", () => {
 });
 
 // Initial hello
-addBotBubble("chào bạn, tôi là chatbot Btoan AI 😄");
+addBotBubble("chào bạn, tôi là chatbot Btoan AI 😄.");
