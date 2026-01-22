@@ -1,5 +1,5 @@
 // ====== cấu hình ======
-const WORKER_URL = "https://btoan-gemini-proxy.workers.dev";
+const WORKER_URL = "https://btoan-gemini-proxy.ss1sien.workers.dev";
 
 const MODEL = "gemini-2.5-flash";
 const TEMPERATURE = 0.7;
