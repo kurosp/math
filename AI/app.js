@@ -8,9 +8,9 @@ const API_KEYS = [
   " AIzaSyCsoth235SBzlAAP1QY8Re_O8bmDOfLHB0"
 ];
 
-const MODEL = "gemini-3-flash";
+const MODEL = "gemini-2.5-flash";
 const TEMPERATURE = 0.7;
-const MAX_OUTPUT_TOKENS = 7500;
+const MAX_OUTPUT_TOKENS = 5000;
 
 // Khi hết cả 5 key, chờ tối thiểu X giây rồi quay lại key #1 thử lại
 const COOLDOWN_DEFAULT_SECONDS = 10;
